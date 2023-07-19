@@ -1,0 +1,19 @@
+############## Created by de.microtema:github-workflow-maven-plugin ############
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+# Files under .github/workflows folder are generated and should not be edited. #
+################################################################################
+
+name: 'demo service'
+
+on:
+  push:
+    branches:
+      - bugfix/*
+
+env:
+  APP_NAME: "demo-service"
+  APP_DISPLAY_NAME: "demo service"
+  VERSION: "0.0.1-SNAPSHOT"
+
+jobs:
+

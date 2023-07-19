@@ -1,0 +1,88 @@
+############## Created by de.microtema:github-workflow-maven-plugin ############
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+# Files under .github/workflows folder are generated and should not be edited. #
+################################################################################
+
+name: 'demo service'
+
+on:
+  push:
+    branches:
+      - feature/*
+
+env:
+  APP_NAME: "demo-service"
+  APP_DISPLAY_NAME: "demo service"
+  VERSION: "0.0.1-SNAPSHOT"
+
+jobs:
+  initialize:
+    name: Initialize
+    runs-on: [ self-hosted ]
+    steps:
+      - name: UUID ${{ github.event.inputs.commitId }}
+        run: echo UUID ${{ github.event.inputs.commitId }}
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: eu-central-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Terraform Initialize
+        working-directory: ./terraform
+        run: terraform init
+  validate:
+    name: Validate
+    runs-on: [ self-hosted ]
+    needs: [ initialize ]
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: eu-central-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Terraform Validate
+        working-directory: ./terraform
+        run: terraform init && terraform validate
+  packaging:
+    name: Planing
+    runs-on: [ self-hosted ]
+    needs: [ validate ]
+    env:
+      TF_CLI_ARGS: "-input=false -var-file=env/.none.tfvars\
+         \ -var=commit_id=${{ github.event.inputs.commitId }}\
+         \ -var=image_tag=${{ github.event.inputs.version }}"
+    steps:
+      - name: 'Shell: set env'
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo "TF_CLI_ARGS=-input=false\
+            -var-file=env/.none.tfvars\
+            -var=commit_id=`echo ${GITHUB_SHA} | cut -c1-7`\
+            -var=image_tag=${VERSION}" >> $GITHUB_ENV
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: eu-central-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: terraform plan -out=tfplan
